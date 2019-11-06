@@ -1,0 +1,140 @@
+From a9c8b8620c7be03b1f8f4a17b2d45aa472be5666 Mon Sep 17 00:00:00 2001
+From: Naveen Saini <naveen.kumar.saini@intel.com>
+Date: Wed, 6 Nov 2019 10:56:11 +0800
+Subject: [PATCH] Makefile: ensure cross-compilation env is used
+
+Upstream-Status: Inappropriate [OE Specific]
+
+Signed-off-by: Naveen Saini <naveen.kumar.saini@intel.com>
+---
+ guest/Makefile            | 30 ------------------------------
+ guest/configure           | 16 ----------------
+ guest/x86/Makefile.common |  9 ++++++---
+ guest/x86/Makefile.x86_64 |  1 -
+ 4 files changed, 6 insertions(+), 50 deletions(-)
+
+diff --git a/guest/Makefile b/guest/Makefile
+index 4b340b4..4ea02eb 100644
+--- a/guest/Makefile
++++ b/guest/Makefile
+@@ -18,11 +18,6 @@ DESTDIR := $(PREFIX)/share/kvm-unit-tests/
+ 
+ .PHONY: arch_clean clean distclean cscope
+ 
+-#make sure env CFLAGS variable is not used
+-CFLAGS =
+-
+-libgcc := $(shell $(CC) --print-libgcc-file-name)
+-
+ libcflat := lib/libcflat.a
+ cflatobjs := \
+ 	lib/argv.o \
+@@ -44,32 +39,7 @@ OBJDIRS += $(LIBFDT_objdir)
+ #include architecture specific make rules
+ include $(SRCDIR)/$(TEST_DIR)/Makefile
+ 
+-# cc-option
+-# Usage: OP_CFLAGS+=$(call cc-option, -falign-functions=0, -malign-functions=0)
+-
+-cc-option = $(shell if $(CC) $(1) -S -o /dev/null -xc /dev/null \
+-              > /dev/null 2>&1; then echo "$(1)"; else echo "$(2)"; fi ;)
+-
+-COMMON_CFLAGS += -g $(autodepend-flags)
+-COMMON_CFLAGS += -Wall -Wwrite-strings -Wclobbered -Wempty-body -Wuninitialized
+-COMMON_CFLAGS += -Wignored-qualifiers -Wunused-but-set-parameter
+-COMMON_CFLAGS += -Werror
+-frame-pointer-flag=-f$(if $(KEEP_FRAME_POINTER),no-,)omit-frame-pointer
+-fomit_frame_pointer := $(call cc-option, $(frame-pointer-flag), "")
+-fnostack_protector := $(call cc-option, -fno-stack-protector, "")
+-fnostack_protector_all := $(call cc-option, -fno-stack-protector-all, "")
+-wno_frame_address := $(call cc-option, -Wno-frame-address, "")
+-fno_pic := $(call cc-option, -fno-pic, "")
+-no_pie := $(call cc-option, -no-pie, "")
+-COMMON_CFLAGS += $(fomit_frame_pointer)
+-COMMON_CFLAGS += $(fno_stack_protector)
+-COMMON_CFLAGS += $(fno_stack_protector_all)
+-COMMON_CFLAGS += $(wno_frame_address)
+-COMMON_CFLAGS += $(if $(U32_LONG_FMT),-D__U32_LONG_FMT__,)
+-COMMON_CFLAGS += $(fno_pic) $(no_pie)
+-
+ CFLAGS += $(COMMON_CFLAGS)
+-CFLAGS += -Wmissing-parameter-type -Wold-style-declaration -Woverride-init
+ 
+ CXXFLAGS += $(COMMON_CFLAGS)
+ 
+diff --git a/guest/configure b/guest/configure
+index df8581e..0898d74 100755
+--- a/guest/configure
++++ b/guest/configure
+@@ -126,22 +126,6 @@ if [ -f "$srcdir/$testdir/run" ]; then
+     ln -fs "$srcdir/$testdir/run" $testdir-run
+ fi
+ 
+-# check if uint32_t needs a long format modifier
+-cat << EOF > lib-test.c
+-__UINT32_TYPE__
+-EOF
+-u32_long=$("$cross_prefix$cc" -E lib-test.c | grep -v '^#' | grep -q long && echo yes)
+-rm -f lib-test.c
+-
+-# api/: check for dependent 32 bit libraries and gnu++11 support
+-if [ "$testdir" = "x86" ]; then
+-    echo 'int main () {}' > lib-test.c
+-    if $cc -m32 -o /dev/null -lstdc++ -lpthread -lrt lib-test.c &> /dev/null &&
+-       $cxx -m32 -o /dev/null -std=gnu++11 lib-test.c &> /dev/null; then
+-        api=yes
+-    fi
+-    rm -f lib-test.c
+-fi
+ 
+ # Are we in a separate build tree? If so, link the Makefile
+ # and shared stuff so that 'make' and run_tests.sh work.
+diff --git a/guest/x86/Makefile.common b/guest/x86/Makefile.common
+index 3f73166..4cc3a2c 100644
+--- a/guest/x86/Makefile.common
++++ b/guest/x86/Makefile.common
+@@ -33,8 +33,6 @@ COMMON_CFLAGS += -O1
+ # stack.o relies on frame pointers.
+ KEEP_FRAME_POINTER := y
+ 
+-libgcc := $(shell $(CC) -m$(bits) --print-libgcc-file-name)
+-
+ # We want to keep intermediate file: %.elf and %.o
+ .PRECIOUS: %.elf %.o $(TEST_DIR)/%_prelink.o
+ 
+@@ -63,7 +61,7 @@ x86/bzimage_stub.raw: x86/bzimage_stub.o
+ 
+ tests-common = $(TEST_DIR)/vmexit.flat $(TEST_DIR)/tsc.flat \
+                $(TEST_DIR)/smptest.flat  $(TEST_DIR)/port80.flat \
+-               $(TEST_DIR)/realmode.flat $(TEST_DIR)/msr.flat \
++               $(TEST_DIR)/msr.flat \
+                $(TEST_DIR)/hypercall.flat $(TEST_DIR)/sieve.flat \
+                $(TEST_DIR)/kvmclock_test.flat  $(TEST_DIR)/eventinj.flat \
+                $(TEST_DIR)/s3.flat $(TEST_DIR)/pmu.flat $(TEST_DIR)/setjmp.flat \
+@@ -73,6 +71,11 @@ tests-common = $(TEST_DIR)/vmexit.flat $(TEST_DIR)/tsc.flat \
+                $(TEST_DIR)/hyperv_connections.flat \
+                $(TEST_DIR)/umip.flat
+ 
++#realmode testcase is being built with -m32 regardles for target arch
++ifneq ($(ARCH), x86_64)
++tests-common += $(TEST_DIR)/realmode.flat
++endif
++
+ ifdef API
+ tests-api = api/api-sample api/dirty-log api/dirty-log-perf
+ 
+diff --git a/guest/x86/Makefile.x86_64 b/guest/x86/Makefile.x86_64
+index 53169c6..7b6d150 100644
+--- a/guest/x86/Makefile.x86_64
++++ b/guest/x86/Makefile.x86_64
+@@ -1,7 +1,6 @@
+ cstart.o = $(TEST_DIR)/cstart64.o
+ bits = 64
+ ldarch = elf_x86_64
+-COMMON_CFLAGS += -mno-red-zone -mno-sse -mno-sse2
+ 
+ cflatobjs += lib/x86/setjmp64.o
+ cflatobjs += lib/x86/intel-iommu.o
+-- 
+2.17.1
+
