@@ -7,11 +7,10 @@ SRC_URI += "file://dont-build-tools.patch \
 inherit python3native
 
 DEPENDS += "util-linux libusb1 openssl libpciaccess acrn-tools"
+DEPENDS += "acpica-native"
 
 # Tell the build where to find acrn-tools
 EXTRA_OEMAKE += "COPTS=${STAGING_DIR_TARGET}${includedir}/acrn"
-
-EXTRA_OEMAKE += "ASL_COMPILER=${bindir}/iasl"
 
 PACKAGES += "${PN}-sample"
 
