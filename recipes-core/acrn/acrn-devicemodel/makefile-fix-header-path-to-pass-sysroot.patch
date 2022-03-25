@@ -1,0 +1,34 @@
+From 7f957e4d91944922833b6df02f81d9da7e172f15 Mon Sep 17 00:00:00 2001
+From: Naveen Saini <naveen.kumar.saini@intel.com>
+Date: Fri, 25 Mar 2022 19:38:19 +0800
+Subject: [PATCH] makefile: fix header path to pass sysroot
+
+Upstream-Status: Pending
+
+Signed-off-by: Naveen Saini <naveen.kumar.saini@intel.com>
+---
+ devicemodel/Makefile | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/devicemodel/Makefile b/devicemodel/Makefile
+index 001a5977e..4972cf7f2 100644
+--- a/devicemodel/Makefile
++++ b/devicemodel/Makefile
+@@ -39,10 +39,10 @@ CFLAGS += -I$(BASEDIR)/include
+ CFLAGS += -I$(BASEDIR)/include/public
+ CFLAGS += -I$(DM_OBJDIR)/include
+ CFLAGS += -I$(TOOLS_OUT)/services
+-CFLAGS += -I/usr/include/pixman-1
+-CFLAGS += -I/usr/include/glib-2.0
+-CFLAGS += -I/usr/include/SDL2
+-CFLAGS += -I/usr/include/EGL
++CFLAGS += -I$(SYSROOT)/usr/include/pixman-1
++CFLAGS += -I$(SYSROOT)/usr/include/glib-2.0
++CFLAGS += -I$(SYSROOT)/usr/include/SDL2
++CFLAGS += -I$(SYSROOT)/usr/include/EGL
+ 
+ ifneq (, $(DM_ASL_COMPILER))
+ CFLAGS += -DASL_COMPILER=\"$(DM_ASL_COMPILER)\"
+-- 
+2.17.1
+
