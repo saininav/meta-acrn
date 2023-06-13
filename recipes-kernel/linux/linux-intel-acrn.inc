@@ -14,6 +14,7 @@ SRC_URI = " \
            file://0001-lib-build_OID_registry-fix-reproducibility-issues.patch \
            file://fix-perf-reproducibility.patch \
            file://0001-menuconfig-mconf-cfg-Allow-specification-of-ncurses-.patch \
+           file://0001-serial-8250-fix-duplicate-setup_irq-call-in-serial82.patch \
 	  "
 
 KMETA = "kernel-meta"
